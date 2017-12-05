@@ -3,6 +3,7 @@
 
 #include <neurodidactic/core/arrays/DimensionList.hpp>
 #include <atomic>
+#include <memory>
 #include <utility>
 #include <stdint.h>
 
@@ -16,11 +17,17 @@ namespace neurodidactic {
 	public:
 	  typedef Field FieldType;
 	  typedef Allocator AllocatorType;
+	  typedef typename std::allocator_traits<Allocator>
+	              ::template rebind_alloc<uint32_t>
+	          DimensionListAllocator;
+	  typedef DimensionList<DimensionListAllocator> DimensionListType;
 	  
 	public:
-	  ArrayData(DimensionList&& dimensions, const Allocator& allocator):
+	  ArrayData(DimensionListType&& dimensions, const Allocator& allocator):
 	      Allocator(allocator), dimensions_(std::move(dimensions)),
-  	      data_(allocator.allocate(dimensions_.numElements())),
+	      size_(dimensions_.numElements()),
+	      leadingDimension_(size_ / dimensions_[0]),
+  	      data_(this->allocate(size_)),
 	      refCnt_(0) {
 	    // Intentionally left blank
 	  }
@@ -35,155 +42,34 @@ namespace neurodidactic {
 	  Allocator& allocator() noexcept {
 	    return static_cast<Allocator&>(*this);
 	  }
-	  const DimensionList& dimensions() const noexcept {
+	  const DimensionListType& dimensions() const noexcept {
 	    return dimensions_;
 	  }
-	  uint64_t size() const noexcept {
-	    return dimensions_.numElements();
+	  uint64_t size() const noexcept { return size_; }
+	  uint64_t leadingDimension() const noexcept {
+	    return leadingDimension_;
 	  }
 	  const Field* data() const noexcept { return data_; }
 	  Field* data() noexcept { return data_; }
+	  const Field* end() const noexcept { return data_ + size(); }
+	  Field* end() const noexcept { return data_ + size(); }
 	  uint32_t refCnt() const noexcept {
 	    return refCnt_.load(std::memory_order_consume);
 	  }
 
-	  ArrayData* addRef() noexcept { ++refCnt_; return *this; }
+	  ArrayData& addRef() noexcept { ++refCnt_; return *this; }
 	  uint32_t removeRef() noexcept { return --refCnt_; }
 	  
 	  Field operator[](uint64_t n) const noexcept { return data_[n]; }
-	  Field& operator[](uint64_t n) const noexcept { return data_[n]; }
+	  Field& operator[](uint64_t n) noexcept { return data_[n]; }
 
 	private:
-	  DimensionList dimensions_;
+	  DimensionListType dimensions_;
+	  uint64_t size_;
+	  uint64_t leadingDimension_;
 	  Field* data_;
-	  std::atomic_uint32_t refCnt_;
+	  std::atomic<uint32_t> refCnt_;
 	};							     
-
-	template <typename Field, typename Allocator>
-	class ArrayDataPtr :
-	    typename std::allocator_traits<Allocator>
-	                ::template rebind_alloc<ArrayData> {
-	public:
-	  typedef std::allocator_traits<Allocator>
-	             ::template rebind_alloc<ArrayData> ArrayDataAllocator;
-	  typedef std::allocator_traits<Allocator>
-	             ::template rebind_alloc<Field> ElementAllocator;
-	  typedef ArrayData<Field, ElementAllocator> ArrayDataType;
-	  
-	public:	  
-	  explicit ArrayDataPtr(const Allocator& allocator) :
-	      ArrayDataAllocator(allocator), p_(nullptr) {
-	    // Intentionally left blank
-	  }
-	  
-	  ArrayDataPtr(ArrayDataType* p, const Allocator& allocator) :
-	      ArrayDataAllocator(allocator), p_(addRef_(p)) {
-	    // Intentionally left blank
-	  }
-
-	  
-	  ArrayDataPtr(const ArrayDataPtr<Field, Allocator>& p) :
-	      ArrayDataAllocator(p), p_(addRef_(p)) {
-	    // Intentionally left blank
-	  }
-	  
-	  ArrayDataPtr(ArrayDataPtr<Field, Allocator>&& p) :
-	      ArrayDataAllocator(std::move(p)), p_(p.release()) {
-	    // Intentionally left blank
-	  }
-	  ~ArrayDataPtr() { removeRef_(*this, p_); }
-
-
-	  const ArrayDataAllocator& allocator() const {
-	    return static_cast<const ArrayDataAllocator&>(*this);
-	  }
-
-	  ArrayDataAllocator& allocator() {
-	    return static_cast<ArrayDataAllocator&>(*this);
-	  }
-	  
-	  ArrayDataType* get() const noexcept { return p_; }
-	  ArrayDataType* release() noexcept {
-	    ArrayDataType* tmp = p_;
-	    p_ = nullptr;
-	    return tmp;
-	  }
-
-	  ArrayDataPtr<Field, Allocator>& operator=(
-	      const ArrayDataPtr<Field, Allocator>& other
-	  ) noexcept {
-	    if (p_ != other.p_) {
-	      removeRef_(allocator(), p_);
-	      allocator() = other.allocator();
-	      p_ = addRef_(other.p_);
-	    }
-	    return *this;
-	  }
-
-	  ArrayDataPtr<Field, Allocator>& operator=(
-	      ArrayDataPtr<Field, Allocator>&& other
-	  ) noexcept {
-	    if (p_ != other.p_) {
-	      removeRef(allocator(), p_);
-	      allocator() = other.allocator();
-	      p_ = other.release();
-	    }
-	    return *this;
-	  }
-	  
-	  operator bool() const noexcept { return (bool)p_; }
-	  ArrayDataType& operator*() const noexcept { return *p_; }
-	  ArrayDataType* operator->() const noexcept { return p_; }
-
-	  bool operator==(
-	      const ArrayDataPtr<Field, Allocator>& other
-	  ) const noexcept {
-	    return p_ == other.p_;
-	  }
-
-	  bool operator!=(
-	      const ArrayDataPtr<Field, Allocator>& other
-	  ) const noexcept {
-	    return p_ != other.p_;
-	  }
-
-	  static ArrayDataPtr<Field, Allocator> newData(
-	      DimensionList&& dimensions, const Allocator& allocator
-	  ) {
-	    ArrayDataAllocator tdAllocator(allocator);
-	    return ArrayDataPtr<Field, Allocator>(
-		new(tdAllocator.allocate(sizeof(ArrayDataType))),
-		    ArrayDataType(std::move(dimensions),
-				   ElementAllocator(allocator))
-	    );
-	  }
-	  
-	private:
-	  ArrayDataType* p_;
-
-	  static ArrayDataType* addRef_(
-	      const ArrayDataPtr<Field, Allocator>& p
-	  ) noexcept {
-	    return addRef_(p.get());
-	  }
-	  
-	  static ArrayDataType* addRef_(ArrayDataType* p) noexcept {
-	    return p ? p->addRef() : p;
-	  }
-
-	  static void removeRef_(ArrayDataAllocator& allocator,
-				 ArrayDataPtr<Field, Allocator>& p) noexcept {
-	    removeRef_(allocator, p.get());
-	  }
-	  
-	  static void removeRef_(ArrayDataAllocator& allocator,
-				 ArrayDataType* p) noexcept {
-	    if (p && !p->removeRef()) {
-	      p->~ArrayData();
-	      allocator.deallocate(p, sizeof(ArrayDataType));
-	    }
-	  }
-	};
 	
       }
     }

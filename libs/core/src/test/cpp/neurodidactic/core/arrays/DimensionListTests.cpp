@@ -6,7 +6,7 @@ using namespace neurodidactic::core::arrays;
 namespace pt = pistis::testing;
 
 TEST(DimensionListTests, CreateFromData) {
-  const uint32_t[] DATA = { 5, 16, 11, 4, 2 };
+  const uint32_t DATA[] = { 5, 16, 11, 4, 2 };
   const uint32_t NUM_DATA = sizeof(DATA)/sizeof(uint32_t);
   const pt::Allocator<uint32_t> allocator("TEST_1");
   DimensionList< pt::Allocator<uint32_t> > l(NUM_DATA, DATA, allocator);

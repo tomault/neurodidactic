@@ -10,25 +10,30 @@ export CXX ?= g++
 export CXX_OPTS_DEBUG = -pthread -g
 export CXX_OPTS_RELEASE = -pthread -g -O3
 
-# Repository location
+# Master repository location
 export REPO_DIR ?= /home/tomault/cpp_repo
 export REPO_INC_DIR ?= ${REPO_DIR}/include
 export REPO_LIB_DIR ?= ${REPO_DIR}/lib
 export REPO_BIN_DIR ?= ${REPO_DIR}/bin
 
+# Neurodidactic repository location
+export NEURODIDACTIC_REPO_DIR = ../../target
+
+# Neurodidactic modules this module
+export NEURODIDACTIC_DEPS =
+
 # Pistis modules the current module depends upon
-export PISTIS_DEPS = exceptions
+export PISTIS_DEPS = exceptions util
 
 # Headers and libraries needed for unit tests only
-export PISTIS_TEST_INC_DIRS =
-export PISTIS_TEST_LIB_DIRS =
-export PISTIS_TEST_LIBS = 
+export NEURODIDACTIC_TEST_INC_DIRS =
+export NEURODIDACTIC_TEST_LIB_DIRS =
+export NEURODIDACTIC_TEST_LIBS = 
 
 # Third party dependencies
 export THIRD_PARTY_INC_DIRS = 
 export THIRD_PARTY_LIB_DIRS =
-export BOOST_LIBS = 
-export THIRD_PARTY_LIBS= ${BOOST_LIBS} -lm
+export THIRD_PARTY_LIBS= -lm
 
 # Version information.  Release versions have decimal revision numbers, while
 # snapshot versions have an "S" appended to the revision number.  Snapshot
@@ -43,7 +48,10 @@ export LIBRARY_NAME= neurodidactic_core
 export LIBRARY= lib${LIBRARY_NAME}.so.${VERSION}
 export SONAME= lib${LIBRARY_NAME}.so.${SOVERSION}
 
-dirs:
+${NEURODIDACTIC_REPO_DIR}/include ${NEURODIDACTIC_REPO_DIR}/lib ${NEURODIDACTIC_REPO_DIR}/bin:
+	[ -d $@ ] || mkdir $@
+
+dirs: ${NEURODIDACTIC_REPO_DIR}/include ${NEURODIDACTIC_REPO_DIR}/lib ${NEURODIDACTIC_REPO_DIR}/bin
 	cd ${MODULE_SRC_DIR} && ${MAKE} dirs
 	cd ${MODULE_TESTS_DIR} && ${MAKE} dirs
 

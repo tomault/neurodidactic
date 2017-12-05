@@ -10,7 +10,12 @@ namespace neurodidactic {
     namespace arrays {
 
       template <typename Allocator = std::allocator<uint32_t> >
-      class DimensionList : public ImmutabeList<uint32_t, Allocator> {
+      class DimensionList :
+	  public pistis::util::ImmutableList<uint32_t, Allocator> {
+      private:
+	typedef pistis::util::ImmutableList<uint32_t, Allocator>
+	        ParentType;
+	
       public:
 	template <typename Iterator,
 		  typename Enabler =
@@ -21,8 +26,7 @@ namespace neurodidactic {
 	DimensionList(uint32_t numDimensions, Iterator dimensions,
 		      const Allocator& allocator = Allocator(),
 		      Enabler = 0):
-	    ImmutableList<uint32_t, Allocator>(numDimensions, dimensions,
-					       allocator) {
+	    ParentType(numDimensions, dimensions, allocator) {
 	}
 
 	template <typename Iterator,
@@ -35,14 +39,12 @@ namespace neurodidactic {
 		      Iterator endOfDimensions,
 		      const Allocator& allocator = Allocator(),
 		      Enabler = 0):
-	    ImmutableList<uint32_t, Allocator>(startOfDimensions,
-					       endOfDimensions
-					       allocator) {
+	    ParentType(startOfDimensions, endOfDimensions, allocator) {
 	}
 	
 	DimensionList(const std::initializer_list<uint32_t>& dimensions,
 		      const Allocator& allocator):
-	    ImmutableList<uint32_t, Allocator>(dimensions, allocator) {
+	    ParentType(dimensions, allocator) {
 	}
 	
 	DimensionList(const DimensionList<Allocator>& other) = default;
@@ -52,10 +54,8 @@ namespace neurodidactic {
 	    return product * value;
 	  };
 	  
-	  return empty() ? 0 : reduce(PRODUCT, 1);
+	  return this->empty() ? 0 : this->reduce(PRODUCT, 1);
 	}
-	
-      private:
       };
 
     }
