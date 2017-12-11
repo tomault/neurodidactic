@@ -2,6 +2,7 @@
 #define __NEURODIDACTIC__CORE__ARRAYS__DIMENSIONLIST_HPP__
 
 #include <pistis/util/ImmutableList.hpp>
+#include <ostream>
 #include <type_traits>
 #include <stdint.h>
 
@@ -43,12 +44,20 @@ namespace neurodidactic {
 	}
 	
 	DimensionList(const std::initializer_list<uint32_t>& dimensions,
-		      const Allocator& allocator):
+		      const Allocator& allocator = Allocator()):
 	    ParentType(dimensions, allocator) {
 	}
 	
 	DimensionList(const DimensionList<Allocator>& other) = default;
 
+	DimensionList(const ParentType& other):
+	    ParentType(other) {
+	}
+
+	DimensionList replaceLast(uint32_t v) const {
+	  return this->replace(this->size() - 1, v);
+	}
+	
 	uint64_t numElements() const {
 	  static const auto PRODUCT = [](uint32_t product, uint32_t value) {
 	    return product * value;
@@ -58,6 +67,21 @@ namespace neurodidactic {
 	}
       };
 
+      template <typename Allocator>
+      inline std::ostream& operator<<(
+	  std::ostream& output, const DimensionList<Allocator>& list
+      ) {
+	output << "[";
+	for (auto i = list.begin(); i != list.end(); ++i) {
+	  if (i != list.begin()) {
+	    output << ", " << *i;
+	  } else {
+	    output << *i;
+	  }
+	}
+	return output << " ]";
+      }
+      
     }
   }
 }

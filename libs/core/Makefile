@@ -16,6 +16,8 @@ export REPO_INC_DIR ?= ${REPO_DIR}/include
 export REPO_LIB_DIR ?= ${REPO_DIR}/lib
 export REPO_BIN_DIR ?= ${REPO_DIR}/bin
 
+# Location of MKL
+export MKL_ROOT ?= /opt/intel/parallel_studio_xe_2018/compilers_and_libraries_2018/linux/mkl
 # Neurodidactic repository location
 export NEURODIDACTIC_REPO_DIR = ../../target
 
@@ -31,9 +33,9 @@ export NEURODIDACTIC_TEST_LIB_DIRS =
 export NEURODIDACTIC_TEST_LIBS = 
 
 # Third party dependencies
-export THIRD_PARTY_INC_DIRS = 
-export THIRD_PARTY_LIB_DIRS =
-export THIRD_PARTY_LIBS= -lm
+export THIRD_PARTY_INC_DIRS = -DMKL_ILP64 -I${MKL_ROOT}/include
+export THIRD_PARTY_LIB_DIRS = -L${MKL_ROOT}/lib/intel64 -Wl,--no-as-needed
+export THIRD_PARTY_LIBS= -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
 
 # Version information.  Release versions have decimal revision numbers, while
 # snapshot versions have an "S" appended to the revision number.  Snapshot

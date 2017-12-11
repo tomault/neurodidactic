@@ -52,7 +52,7 @@ namespace neurodidactic {
 	  const Field* data() const noexcept { return data_; }
 	  Field* data() noexcept { return data_; }
 	  const Field* end() const noexcept { return data_ + size(); }
-	  Field* end() const noexcept { return data_ + size(); }
+	  Field* end() noexcept { return data_ + size(); }
 	  uint32_t refCnt() const noexcept {
 	    return refCnt_.load(std::memory_order_consume);
 	  }

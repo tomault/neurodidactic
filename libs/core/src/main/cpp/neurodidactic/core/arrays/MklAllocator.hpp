@@ -1,6 +1,8 @@
 #ifndef __NEURODIDACTIC__CORE__ARRAYS__MKLALLOCATOR_HPP__
 #define __NEURODIDACTIC__CORE__ARRAYS__MKLALLOCATOR_HPP__
 
+#include <mkl.h>
+
 #include <type_traits>
 #include <stdint.h>
 
@@ -32,8 +34,8 @@ namespace neurodidactic {
 	template <typename U>
 	MklAllocator(const MklAllocator<U>& other) noexcept { }
 
-	const T* reference(T& r) const noexcept { return &r; }
-	T* reference(T& r) noexcept { return &r; }
+	const T* address(const T& r) const noexcept { return &r; }
+	T* address(T& r) noexcept { return &r; }
 
 	T* allocate(size_t n, const void* hint = nullptr) {
 	  T* p = (T*)mkl_malloc(n * sizeof(T), ALIGNMENT);
@@ -64,7 +66,7 @@ namespace neurodidactic {
 
       template <typename T, typename U>
       bool operator!=(const MklAllocator<T>& left,
-		      const MklAllocator<U>& right) noexcpet {
+		      const MklAllocator<U>& right) noexcept {
 	return false;
       }
       

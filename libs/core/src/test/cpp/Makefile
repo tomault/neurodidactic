@@ -71,7 +71,7 @@ link: compile ${TEST_BIN}
 
 test: link
 	cd ${TARGET_DIR}/test/bin
-	LD_LIBRARY_PATH=${NEURO_LIB_DIR}:${TARGET_DIR}/lib:${REPO_LIB_DIR}:/usr/local/lib:${LD_LIBRARY_PATH} ${TEST_BIN}
+	LD_LIBRARY_PATH=${NEURO_LIB_DIR}:${TARGET_DIR}/lib:${REPO_LIB_DIR}:${MKL_ROOT}/lib/intel64:/usr/local/lib:${LD_LIBRARY_PATH} ${TEST_BIN}
 
 clean:
 	-rm -rf ${TEST_BIN} ${TARGET_DIR}/test/obj/*
