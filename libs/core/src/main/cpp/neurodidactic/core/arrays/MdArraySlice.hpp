@@ -10,11 +10,14 @@
 namespace neurodidactic {
   namespace core {
     namespace arrays {
+      template <size_t ARRAY_ORDER, typename Field, typename Allocator>
+      class MdArray;
 
       template <size_t ARRAY_ORDER, typename Field, typename Allocator>
       class MdArraySlice :
 	  public detail::MdArrayBase<
 	      MdArraySlice<ARRAY_ORDER, Field, Allocator>,
+	      MdArray<ARRAY_ORDER, Field, Allocator>,
 	      typename detail::MdArraySliceType<
 		  ARRAY_ORDER, Field, Allocator
 	      >::type,
@@ -25,16 +28,20 @@ namespace neurodidactic {
 	  >
       {
       public:
+	typedef MdArray<ARRAY_ORDER, Field, Allocator> ArrayType;
 	typedef typename detail::MdArraySliceType<
 		    ARRAY_ORDER, Field, Allocator>::type
 	        SliceType;
+	typedef MdArraySlice<ARRAY_ORDER, Field, Allocator> RefType;	
 	typedef typename detail::MdArrayInnerProductType<
 	            ARRAY_ORDER, Field, Allocator
 	        >::type InnerProductType;
+	typedef MdArray<ARRAY_ORDER + 1, Field, Allocator> OuterProductType;
 
       protected:
 	typedef detail::MdArrayBase<
 	            MdArraySlice<ARRAY_ORDER, Field, Allocator>,
+	            MdArray<ARRAY_ORDER, Field, Allocator>,
 	            SliceType, InnerProductType, ARRAY_ORDER,
 		    Field, Allocator>
 	        BaseType;
@@ -54,6 +61,8 @@ namespace neurodidactic {
 	      this->dimensions(), this->begin(), this->allocator()
 	  );
 	}
+
+	RefType ref() const { return *this; }
 
 	MdArraySlice& operator=(const MdArraySlice&) = default;
 	MdArraySlice& operator=(MdArraySlice&&) = default;
@@ -145,11 +154,13 @@ namespace neurodidactic {
 	friend class MdArraySlice<ARRAY_ORDER + 1, Field, Allocator>;
 	friend class detail::MdArrayCommon<
 	    MdArraySlice<ARRAY_ORDER, Field, Allocator>,
+	    MdArray<ARRAY_ORDER, Field, Allocator>,
 	    SliceType, InnerProductType,
 	    ARRAY_ORDER, Field, Allocator
 	>;
 	friend class detail::MdArrayBase<
 	    MdArraySlice<ARRAY_ORDER, Field, Allocator>,
+	    MdArray<ARRAY_ORDER, Field, Allocator>,
 	    SliceType, InnerProductType,
 	    ARRAY_ORDER, Field, Allocator
 	>;

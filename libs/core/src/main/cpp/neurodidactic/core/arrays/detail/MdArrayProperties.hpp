@@ -33,7 +33,7 @@ namespace neurodidactic {
 	struct MdArraySliceType<1, Field, Allocator> {
 	  typedef Field type;
 	};
-	
+
       }
     }
   }

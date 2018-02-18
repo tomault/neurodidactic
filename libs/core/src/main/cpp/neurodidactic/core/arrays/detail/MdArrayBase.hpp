@@ -9,24 +9,31 @@
 namespace neurodidactic {
   namespace core {
     namespace arrays {
+      template <size_t ARRAY_ORDER, typename Field, typename Allocator>
+      class MdArray;
+      
       namespace detail {
 
 	template <typename DerivedArray,
+		  typename NewArray,
 		  typename ArraySlice,
 		  typename InnerProductResult,
 		  size_t ARRAY_ORDER,
 		  typename Field, typename Allocator>
 	class MdArrayBase :
-	    public MdArrayCommon<DerivedArray, ArraySlice, InnerProductResult,
-				 ARRAY_ORDER, Field, Allocator>
+	    public MdArrayCommon<DerivedArray, NewArray, ArraySlice,
+				 InnerProductResult, ARRAY_ORDER, Field,
+				 Allocator>
 	{
 	protected:
-	  typedef MdArrayCommon<DerivedArray, ArraySlice, InnerProductResult,
-				ARRAY_ORDER, Field, Allocator>
+	  typedef MdArrayCommon<DerivedArray, NewArray, ArraySlice,
+				InnerProductResult, ARRAY_ORDER, Field,
+				Allocator>
 	          CommonArrayBaseType_;
 	  
 	public:
 	  using CommonArrayBaseType_::innerProduct;
+	  using CommonArrayBaseType_::transposeInnerProduct;
 	  using CommonArrayBaseType_::matrixProduct;
 								  
 	  template <typename Vector,
@@ -47,9 +54,9 @@ namespace neurodidactic {
 							result.dimensions(),
 							PISTIS_EX_HERE);
 	    auto& myDimensions = this->self().dimensions();
-	    size_t rows = myDimensions[myDimensions.size() - 2];
-	    size_t columns = myDimensions[myDimensions.size() - 1];
-	    size_t matrixSize = rows * columns;
+	    const size_t rows = myDimensions[myDimensions.size() - 2];
+	    const size_t columns = myDimensions[myDimensions.size() - 1];
+	    const size_t matrixSize = rows * columns;
 	    const Field* p = this->self().data();
 	    const Field* end = this->self().end();
 	    Field* q = result.data();
@@ -60,6 +67,46 @@ namespace neurodidactic {
 	    return result;
 	  }
 
+	  template <typename Vector,
+		    typename ResultArray,
+		    typename Enabled =
+		        typename std::enable_if<
+		            IsMdArray<Vector>::value &&
+		                IsMdArray<ResultArray>::value &&
+		                (Vector::ORDER == 1) &&
+	                        (ResultArray::ORDER == ARRAY_ORDER - 1),
+	                    ResultArray
+	                >::type
+		   >
+	  ResultArray& transposeInnerProduct(const Vector& v,
+					     ResultArray& result) const {
+	    
+	    typedef detail::MklAdapter<Field, typename Vector::FieldType>
+	            MklAdapter;
+	    this->validateTransposeInnerProductArgDimensions_("Vector \"v\"",
+							      v.dimensions(),
+							      PISTIS_EX_HERE);
+	    this->validateTransposeInnerProductResultDimensions_(
+		"Matrix \"m\"", v.dimensions(), result.dimensions(),
+		PISTIS_EX_HERE
+	    );
+	    
+	    auto& myDimensions = this->self().dimensions();
+	    const size_t rows = myDimensions.back(1);
+	    const size_t columns = myDimensions.back();
+	    const size_t matrixSize = rows * columns;
+	    const Field* p = this->self().data();
+	    const Field* const end = this->self().end();
+	    Field* q = result.data();
+
+	    for (; p < end; p += matrixSize, q += columns) {
+	      MklAdapter::multiplyMatrixTransposeByVector(rows, columns, p,
+							  v.data(), q);
+	    }
+
+	    return result;
+	  }
+	  
 	  template <typename Matrix,
 		    typename ResultArray,
 		    typename Enabled =
@@ -109,21 +156,23 @@ namespace neurodidactic {
 	  }
 	};
 
-	template <typename DerivedArray, typename ArraySlice,
-		  typename InnerProductResult, typename Field,
-		  typename Allocator>
-	class MdArrayBase<DerivedArray, ArraySlice, InnerProductResult,
-			  2, Field, Allocator> :
-	    public MdArrayCommon<DerivedArray, ArraySlice, InnerProductResult,
-				 2, Field, Allocator>
+	template <typename DerivedArray, typename NewArray,
+		  typename ArraySlice, typename InnerProductResult, 
+		  typename Field, typename Allocator>
+	class MdArrayBase<DerivedArray, NewArray, ArraySlice,
+			  InnerProductResult, 2, Field, Allocator> :
+	    public MdArrayCommon<DerivedArray, NewArray, ArraySlice,
+				 InnerProductResult, 2, Field, Allocator>
 	{
 	protected:
-	  typedef MdArrayCommon<DerivedArray, ArraySlice, InnerProductResult,
-				2, Field, Allocator>
+	  typedef MdArrayCommon<DerivedArray, NewArray, ArraySlice,
+				InnerProductResult, 2, Field, Allocator>
 	          CommonArrayBaseType_;
+
 	  
 	public:
 	  using CommonArrayBaseType_::innerProduct;
+	  using CommonArrayBaseType_::transposeInnerProduct;
 	  using CommonArrayBaseType_::matrixProduct;
 	  
 	  template <typename Vector,
@@ -151,6 +200,36 @@ namespace neurodidactic {
 
 	    MklAdapter::multiplyMatrixByVector(
 		rows, columns, this->self().data(), v.data(), result.data()
+	    );
+	    return result;
+	  }
+
+	  template <typename Vector,
+		    typename ResultVector,
+		    typename Enabled =
+		        typename std::enable_if<
+		            IsMdArray<Vector>::value &&
+		                IsMdArray<ResultVector>::value &&
+		                (Vector::ORDER == 1) &&
+	                        (ResultVector::ORDER == 1),
+	                    ResultVector
+	                >::type
+		   >
+	  Enabled& transposeInnerProduct(const Vector& v,
+					 ResultVector& result) const {
+	    typedef detail::MklAdapter<Field, typename Vector::FieldType>
+	            MklAdapter;
+	    this->validateTransposeInnerProductArgDimensions_("Vector \"v\"",
+							      v.dimensions(),
+							      PISTIS_EX_HERE);
+	    this->validateTransposeInnerProductResultDimensions_(
+		"Matrix \"m\"", v.dimensions(), result.dimensions(),
+		PISTIS_EX_HERE
+	    );
+	    auto& myDimensions = this->self().dimensions();
+	    MklAdapter::multiplyMatrixTransposeByVector(
+		myDimensions.back(1), myDimensions.back(), this->self().data(),
+		v.data(), result.data()
 	    );
 	    return result;
 	  }
@@ -197,18 +276,20 @@ namespace neurodidactic {
 	};
 
 
-	template <typename DerivedArray, typename ArraySlice,
-		  typename Field, typename Allocator>
-	class MdArrayBase<DerivedArray, ArraySlice, Field, 1, Field,
+	template <typename DerivedArray, typename NewArray,
+		  typename ArraySlice, typename Field, typename Allocator>
+	class MdArrayBase<DerivedArray, NewArray, ArraySlice, Field, 1, Field,
 			  Allocator> :
-	    public MdArrayCommon<DerivedArray, ArraySlice, Field,
+	    public MdArrayCommon<DerivedArray, NewArray, ArraySlice, Field,
 				 1, Field, Allocator>
 	{
 	protected:
-	  typedef MdArrayCommon<DerivedArray, ArraySlice, Field,
+	  typedef MdArrayCommon<DerivedArray, NewArray, ArraySlice, Field,
 				1, Field, Allocator>
 	          CommonArrayBaseType_;
 	  
+	  template <size_t O> struct OuterProductTag { };
+
 	public:
 	  using CommonArrayBaseType_::matrixProduct;
 
@@ -230,12 +311,9 @@ namespace neurodidactic {
 	  }
 	          
 	  template <typename Vector,
-		    typename ResultArray,
 		    typename Enabled =
 		        typename std::enable_if<
-		            IsMdArray<Vector>::value &&
-		                IsMdArray<ResultArray>::value &&
-		                (Vector::ORDER == 1),
+		            IsMdArray<Vector>::value && (Vector::ORDER == 1),
 	                    Field	    
 	                >::type
 		   >
@@ -250,6 +328,72 @@ namespace neurodidactic {
 	    return result;
 	  }
 
+
+	  template <typename Vector,
+		    typename Enabled =
+		        typename std::enable_if<
+		            IsMdArray<Vector>::value && (Vector::ORDER == 1),
+	                    Field
+	                >::type
+		   >
+	  Field transposeInnerProduct(const Vector& v) const {
+	    typedef detail::MklAdapter<Field, typename Vector::FieldType>
+	            MklAdapter;
+	    this->validateDimensions_("Vector \"v\"", v.dimensions(),
+				      PISTIS_EX_HERE);
+	    return MklAdapter::innerProduct(this->self().size(),
+					    this->self().data(), v.data());
+	  }
+
+	  template <typename Vector,
+		    typename Enabled =
+		        typename std::enable_if<
+		            IsMdArray<Vector>::value && (Vector::ORDER == 1),
+	                    Field
+	                >::type
+		   >
+	  Enabled& transposeInnerProduct(const Vector& v, Field& result) const {
+	    typedef detail::MklAdapter<Field, typename Vector::FieldType>
+	            MklAdapter;
+	    this->validateDimensions_("Vector \"v\"", v.dimensions(),
+				      PISTIS_EX_HERE);
+	    result = MklAdapter::innerProduct(this->self().size(),
+					      this->self().data(),
+					      v.data());
+	    return result;
+	  }
+	
+
+	  template <typename Array,
+		    typename Enabled =
+		        typename std::enable_if<
+		            IsMdArray<Array>::value,
+		            MdArray<Array::ORDER + 1, Field, Allocator>
+	                >::type
+		   >
+	  Enabled outerProduct(const Array& a) const {
+	    typename CommonArrayBaseType_::DimensionListType resultDimensions =
+	      a.dimensions().insert(a.dimensions().size() - 1,
+				    this->self().dimensions().back());
+	    Enabled result(resultDimensions, this->allocator());
+	    return std::move(
+		this->outerProduct_(a, result, OuterProductTag<Array::ORDER>())
+	    );
+	  }
+
+	  template <typename ArgArray, typename ResultArray,
+		    typename Enabled =
+		        typename std::enable_if<
+		            IsMdArray<ArgArray>::value &&
+		              IsMdArray<ResultArray>::value,
+	                    ResultArray
+	                >::type
+		   >
+	  Enabled& outerProduct(const ArgArray& a, ResultArray& result) const {
+	    return this->outerProduct_(a, result,
+				       OuterProductTag<ArgArray::ORDER>());
+	  }
+	  
 	  template <typename Matrix,
 		    typename ResultVector,
 		    typename Enabled =
@@ -286,6 +430,45 @@ namespace neurodidactic {
 
 	  Field operator[](size_t n) const { return this->data()[n]; }
 	  Field& operator[](size_t n) { return this->data()[n]; }
+
+	private:
+	  template <typename Vector, typename Result>
+	  Result& outerProduct_(const Vector& v, Result& result,
+				OuterProductTag<1>) const {
+	    typedef detail::MklAdapter<Field, typename Vector::FieldType>
+	            MklAdapter;
+	    this->validateOuterProductDimensions_("Array \"result\"",
+						  v.dimensions(),
+						  result.dimensions(),
+						  PISTIS_EX_HERE);
+	    MklAdapter::outerProduct(this->self().size(), v.size(),
+				      this->self().data(), v.data(),
+				      result.data());
+	    return result;
+	  }
+
+	  template <typename Array, typename Result, size_t O>
+	  Result& outerProduct_(const Array& a, Result& result,
+				OuterProductTag<O>) const {
+	    typedef detail::MklAdapter<Field, typename Array::FieldType>
+	            MklAdapter;
+	    this->validateOuterProductDimensions_("Array \"result\"",
+						  a.dimensions(),
+						  result.dimensions(),
+						  PISTIS_EX_HERE);
+	    const auto myData = this->self().data();
+	    const auto mySize = this->self().size();
+	    const size_t argColumns = a.dimensions().back();
+	    auto q = result.data();
+	    const size_t qDelta = mySize * argColumns;
+	    for (auto p = a.data();
+		 p != a.end();
+		 p += argColumns, q += qDelta) {
+	      MklAdapter::outerProduct(mySize, argColumns, myData, p, q);
+	    }
+	    return result;
+	  }
+	  
 	};
 	
       }

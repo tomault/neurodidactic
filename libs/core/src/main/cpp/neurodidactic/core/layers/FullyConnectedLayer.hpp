@@ -1,6 +1,8 @@
 #ifndef __NEURODIDACTIC__CORE__LAYERS__FULLYCONNECTED_HPP__
 #define __NEURODIDACTIC__CORE__LAYERS__FULLYCONNECTED_HPP__
 
+#include <neurodidactic/arrays/MdArray.hpp>
+
 namespace neurodidactic {
   namespace core {
     namespace layers {
@@ -49,9 +51,7 @@ namespace neurodidactic {
 	uint32_t id() const { return id_; }
 	size_t numInputs() const { return weights_.dimensions()[1]; }
 	size_t numOutputs() const { return weights_.dimensions()[0]; }
-	const Nonlinearity& nonlinearity() const {
-	  return static_cast<const Nonlinearity&>(*this);
-	}
+	const Nonlinearity& nonlinearity() const { return f_; }
 	const WeightMatrixType& weights() const { return weights_; }
 	WeightMatrixType& weights() { return weights_; }
 	const BiasVectorType& bias() const { return bias_; }
@@ -76,7 +76,7 @@ namespace neurodidactic {
 	InputType lossGradient(const OutputType& lossGradient,
 			       const ForwardState& forwardState) const {
 	  return weights._transposeInnerProduct(
-	      f_.gradient(forwardState.activations(id()))
+	      f_.gradient(forwardState.activations<1>(id()))
 	        .multiplyInPlace(lossGradient);
 	  );
 	}
@@ -86,26 +86,26 @@ namespace neurodidactic {
 	    const OutputType& lossGradient,
 	    const ForwardState& forwardState
 	) const {
-	  return f_.gradient(forwardState.activations(id()))
+	  return f_.gradient(forwardState.activations<1>(id()))
 	           .multiplyInPlace(lossGradient)
-	           .outerProduct(forwardState.inputs(id()));
+	           .outerProduct(forwardState.inputs<1>(id()));
 	}
 
 	template <typename ForwardState>
 	BiasVectorType biasGradient(const OutputType& lossGradient,
 				    const ForwardState& forwardState) {
-	  return f_.gradient(forwardState.activations(id()))
+	  return f_.gradient(forwardState.activations<1>(id()))
 	           .multiplyInPlace(lossGradient);
 	}
 
 	template <typename ForwardState, typename Optimizer>
-	InputType backward(const OuputType& lossGradient,
+	InputType backward(const OutputType& lossGradient,
 			   const ForwardState& forwardState,
 			   Optimizer& optimizer) {
-	  auto weightedLoss = f_.gradient(forwardState.activations(id()))
+	  auto weightedLoss = f_.gradient(forwardState.activations<1>(id()))
 	                        .multiplyInPlace(lossGradient);
 	  optimizer.update(
-	      weights_, weightedLoss.outerProduct(forwardState.inputs(id()))
+	      weights_, weightedLoss.outerProduct(forwardState.inputs<1>(id()))
 	  );
 	  optimizer.update(bias_, weightedLoss);
 	  return weights_.transposeInnerProduct(weightedLoss);

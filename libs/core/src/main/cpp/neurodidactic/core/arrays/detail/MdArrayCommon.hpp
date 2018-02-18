@@ -13,6 +13,7 @@ namespace neurodidactic {
       namespace detail {
 
 	template <typename DerivedArray,
+		  typename NewArray,
 		  typename ArraySlice,
 		  typename InnerProductResult,
 		  size_t ARRAY_ORDER,
@@ -29,8 +30,9 @@ namespace neurodidactic {
 	  typedef Allocator AllocatorType;
 	  typedef DimensionList<DimensionListAllocator> DimensionListType;
 	  typedef ArraySlice SliceType;
-	  typedef MdArrayCommon<DerivedArray, ArraySlice, InnerProductResult,
-				ARRAY_ORDER, Field, Allocator>
+	  typedef MdArrayCommon<DerivedArray, NewArray, ArraySlice,
+				InnerProductResult, ARRAY_ORDER, Field,
+				Allocator>
 	          ThisType;
 	
 	public:
@@ -55,15 +57,15 @@ namespace neurodidactic {
 
 	  template <typename OtherArray,
 		    typename Enabled =
-		        typename std::enable_if<IsMdArray<OtherArray>::value,
-						DerivedArray
-					       >::type
+		        typename std::enable_if<
+		            IsMdArray<OtherArray>::value, NewArray
+			>::type
 		   >
 	  Enabled add(const OtherArray& other) const {
 	    validateDimensions_("Array \"other\"", other.dimensions(),
 				PISTIS_EX_HERE);
 
-	    DerivedArray result(this->dimensions(), this->allocator());
+	    NewArray result(this->dimensions(), this->allocator());
 	    return std::move(this->add(other, result));
 	  }
 
@@ -100,15 +102,15 @@ namespace neurodidactic {
 
 	  template <typename OtherArray,
 		    typename Enabled =
-		        typename std::enable_if<IsMdArray<OtherArray>::value,
-						DerivedArray
-					       >::type
+		        typename std::enable_if<
+		            IsMdArray<OtherArray>::value, NewArray
+			>::type
 		   >
 	  Enabled scaleAndAdd(Field c, const OtherArray& other) const {
 	    validateDimensions_("Array \"other\"", other.dimensions(),
 				PISTIS_EX_HERE);
 
-	    DerivedArray result(this->self());
+	    NewArray result(this->self());
 	    return std::move(result.scaleAndAddInPlace(c, other));
 	  }
 
@@ -133,9 +135,9 @@ namespace neurodidactic {
 
 	  template <typename OtherArray,
 		    typename Enabled =
-		        typename std::enable_if<IsMdArray<OtherArray>::value,
-					        int
-			         >::type
+		        typename std::enable_if<
+		            IsMdArray<OtherArray>::value, int
+			>::type
 		   >
 	  DerivedArray& scaleAndAddInPlace(Field c, const OtherArray& other,
 					   Enabled = 0) {
@@ -149,16 +151,16 @@ namespace neurodidactic {
 
 	  template <typename OtherArray,
 		    typename Enabled =
-		        typename std::enable_if<IsMdArray<OtherArray>::value,
-						DerivedArray
-					       >::type
+		        typename std::enable_if<
+		            IsMdArray<OtherArray>::value, NewArray
+			>::type
 		   >
 	  Enabled scaleAndAdd(Field c1, Field c2,
 			      const OtherArray& other) const {
 	    validateDimensions_("Array \"other\"", other.dimensions(),
 				PISTIS_EX_HERE);
 
-	    DerivedArray result(this->self());
+	    NewArray result(this->self());
 	    return std::move(result.scaleAndAddInPlace(c1, c2, other));
 	  }
 
@@ -200,15 +202,15 @@ namespace neurodidactic {
 
 	  template <typename OtherArray,
 		    typename Enabled =
-		        typename std::enable_if<IsMdArray<OtherArray>::value,
-						DerivedArray
-					       >::type
+		        typename std::enable_if<
+		            IsMdArray<OtherArray>::value, NewArray
+			>::type
 		   >
 	  Enabled subtract(const OtherArray& other) const {
 	    validateDimensions_("array \"other\"", other.dimensions(),
 				PISTIS_EX_HERE);
 
-	    DerivedArray result(dimensions(), allocator());
+	    NewArray result(dimensions(), allocator());
 	    return std::move(this->subtract(other, result));
 	  }
 
@@ -244,15 +246,15 @@ namespace neurodidactic {
 
 	  template <typename OtherArray,
 		    typename Enabled =
-		        typename std::enable_if<IsMdArray<OtherArray>::value,
-						DerivedArray
-					       >::type
+		        typename std::enable_if<
+		            IsMdArray<OtherArray>::value, NewArray
+			>::type
 		   >
 	  Enabled multiply(const OtherArray& other) const {
 	    validateDimensions_("array \"other\"", other.dimensions(),
 				PISTIS_EX_HERE);
 
-	    DerivedArray result(dimensions(), allocator());
+	    NewArray result(dimensions(), allocator());
 	    return std::move(this->multiply(other, result));
 	  }
 
@@ -286,8 +288,8 @@ namespace neurodidactic {
 	    return this->multiply(other, this->self());
 	  }
 
-	  DerivedArray multiply(Field c) const {
-	    DerivedArray result(this->self());
+	  NewArray multiply(Field c) const {
+	    NewArray result(this->self());
 	    return std::move(result.multiplyInPlace(c));
 	  }
 
@@ -311,15 +313,15 @@ namespace neurodidactic {
 	  
 	  template <typename OtherArray,
 		    typename Enabled =
-		        typename std::enable_if<IsMdArray<OtherArray>::value,
-						DerivedArray
-					       >::type
+		        typename std::enable_if<
+		            IsMdArray<OtherArray>::value, DerivedArray
+			>::type
 		   >
 	  Enabled divide(const OtherArray& other) const {
 	    validateDimensions_("array \"other\"", other.dimensions(),
 				PISTIS_EX_HERE);
 
-	    DerivedArray result(dimensions(), allocator());
+	    NewArray result(dimensions(), allocator());
 	    return std::move(this->divide(other, result));
 	  }
 
@@ -346,42 +348,15 @@ namespace neurodidactic {
 
 	  template <typename OtherArray,
 		    typename Enabled =
-		        typename std::enable_if<IsMdArray<OtherArray>::value,
-						int>::type
+		        typename std::enable_if<
+		            IsMdArray<OtherArray>::value, int
+		        >::type
 		    >
 	  DerivedArray& divideInPlace(const OtherArray& other, Enabled = 0) {
 	    return this->divide(other, this->self());
 	  }
 
-	// MdArray<ARRAY_ORDER, Field, Allocator> divide(Field c) const {
-	//   ThisType result(dimensions(), allocator());
-	//   return this->divide(c, result);
-	// }
-
-	// MdArray<ARRAY_ORDER, Field, Allocator> divide(
-	//     Field c, MdArray<ARRAY_ORDER, Field, Allocator>& result
-	// ) const {
 	  
-	// }
-
-	// MdArray<ARRAY_ORDER, Field, Allocator>& divideInPlace(Field c) {
-	//   return this->divide(c, *this);
-	// }
-	
-	//   MdArray<ARRAY_ORDER, Field, Allocator> matrixProduct(
-	//       const MdArray<2, Field, Allocator>& matrix
-	//   ) const {
-	//     ThisType result(..., allocator());
-	//     return marixProduct(matrix, *this);
-	//   }
-
-	//   MdArray<ARRAY_ORDER, Field, Allocator>& matrixProduct(
-	//        const MdArray<2, Field, Allocator>& matrix,
-	//        MdArray<ARRAY_ORDER, Field, Allocator>& result
-	//   ) const {
-
-	//   }
-	
 	  template <typename Vector,
 		    typename Enabled =
 		        typename std::enable_if<
@@ -400,11 +375,28 @@ namespace neurodidactic {
 	    return std::move(this->self().innerProduct(v, result));
 	  }
 
+	  template <typename Vector,
+		    typename Enabled =
+		        typename std::enable_if<
+		            IsMdArray<Vector>::value && (Vector::ORDER == 1),
+	                    InnerProductResult
+	                >::type
+		   >
+	  Enabled transposeInnerProduct(const Vector& v) const {
+	    this->validateTransposeInnerProductArgDimensions_("Vector \"v\"",
+							      v.dimensions(),
+							      PISTIS_EX_HERE);
+	    const DimensionListType resultDimensions =
+	        this->dimensions().remove(this->dimensions().size() - 2);
+	    InnerProductResult result(resultDimensions, this->allocator());
+	    return std::move(this->self().transposeInnerProduct(v, result));
+	  }
+	  
 	  template <typename Matrix,
 		    typename Enabled =
 		        typename std::enable_if<
 		            IsMdArray<Matrix>::value && (Matrix::ORDER == 2),
-	                    DerivedArray
+	                    NewArray
 	                >::type
 		   >
 	  Enabled matrixProduct(const Matrix& m) const {
@@ -414,10 +406,51 @@ namespace neurodidactic {
 	    DimensionListType resultDimensions(
 	        this->dimensions().replaceLast(m.dimensions()[1])
 	    );
-	    DerivedArray result(resultDimensions, this->allocator());
+	    NewArray result(resultDimensions, this->allocator());
 	    return std::move(this->self().matrixProduct(m, result));
 	  }
 
+	  template <typename Function>
+	  NewArray map(const Function& f) const {
+	    NewArray result(this->dimensions(), this->allocator());
+	    return std::move(this->map(f, result));
+	  }
+
+	  template <typename Function, typename ResultArray,
+		    typename Enabled =
+		        typename std::enable_if<
+		            IsMdArray<ResultArray>::value &&
+		                (ResultArray::ORDER == ARRAY_ORDER),
+	                    ResultArray
+	                >::type
+		   >
+	  Enabled& map(const Function& f, ResultArray& result) const {
+	    if (result.dimensions() != this->dimensions()) {
+	      std::ostringstream msg;
+	      msg << "Array \"result\" has incorrect dimensions "
+		  << result.dimensions() << " -- it should have dimensions "
+		  << this->dimensions();
+	      throw pistis::exceptions::IllegalValueError(msg.str(),
+							  PISTIS_EX_HERE);
+	    }
+
+	    auto p = this->data();
+	    auto q = result.data();
+#pragma omp parallel for
+	    {
+	      for (size_t i = 0; i < this->size(); ++i) {
+		q[i] = f(p[i]);
+	      }
+	    }
+
+	    return result;
+	  }
+
+	  template <typename Function>
+	  DerivedArray& mapInPlace(Function f) {
+	    return this->map(f, this->self());
+	  }
+	  
 	//   const SliceType operator[](size_t n) const {
 	//     return self()->slice_(n);
 	//   }
@@ -445,7 +478,7 @@ namespace neurodidactic {
 	      const DimensionListType& dimensions,
 	      const pistis::exceptions::ExceptionOrigin& origin
 	  ) const {
-	    size_t lastDimension = this->dimensions().back();
+	    const size_t lastDimension = this->dimensions().back();
 	    if ((dimensions.size() != 1) || (dimensions[0] != lastDimension)) {
 	      std::ostringstream msg;
 	      msg << name << " has dimensions " << dimensions
@@ -460,7 +493,8 @@ namespace neurodidactic {
 	      const DimensionListType& dimensions,
 	      const pistis::exceptions::ExceptionOrigin& origin
 	  ) const {
-	    DimensionListType targetDimensions = this->dimensions().butLast(1);
+	    const DimensionListType targetDimensions =
+	        this->dimensions().butLast(1);
 	    
 	    if (dimensions != targetDimensions) {
 	      std::ostringstream msg;
@@ -497,10 +531,59 @@ namespace neurodidactic {
 	      const DimensionListType& resultDimensions,
 	      const pistis::exceptions::ExceptionOrigin& origin
 	  ) const {
-	    DimensionListType targetDimensions =
-	      this->self().dimensions().replaceLast(argDimensions[1]);
+	    const DimensionListType targetDimensions =
+	        this->self().dimensions().replaceLast(argDimensions[1]);
 
 	    if (resultDimensions != targetDimensions) {
+	      std::ostringstream msg;
+	      msg << name << " has incorrect dimensions " << targetDimensions
+		  << " -- it should have dimensions " << resultDimensions;
+	      throw pistis::exceptions::IllegalValueError(msg.str(), origin);
+	    }
+	  }
+
+	  void validateOuterProductDimensions_(
+	      const std::string& name,
+	      const DimensionListType& argDimensions,
+	      const DimensionListType& resultDimensions,
+	      const pistis::exceptions::ExceptionOrigin& origin
+	  ) const {
+	    const DimensionListType targetDimensions =
+	        argDimensions.insert(argDimensions.size() - 1,
+				     this->self().dimensions().back());
+	    if (targetDimensions != resultDimensions) {
+	      std::ostringstream msg;
+	      msg << name << " has incorrect dimensions " << resultDimensions
+		  << " -- it should have dimensions " << targetDimensions;
+	      throw pistis::exceptions::IllegalValueError(msg.str(), origin);
+	    }
+	  }
+
+	  void validateTransposeInnerProductArgDimensions_(
+	      const std::string& name,
+	      const DimensionListType& argDimensions,
+	      const pistis::exceptions::ExceptionOrigin& origin
+	  ) const {
+	    if (this->self().dimensions().back(1) != argDimensions.front()) {
+	      std::ostringstream msg;
+	      msg << name << " has incorrect dimensions " << argDimensions
+		  << " -- it should have dimensions [ "
+		  << this->self().dimensions().back(1) << " ]";
+	      throw pistis::exceptions::IllegalValueError(msg.str(), origin);
+	    }
+	  }
+
+	  void validateTransposeInnerProductResultDimensions_(
+	      const std::string& name,
+	      const DimensionListType& argDimensions,
+	      const DimensionListType& resultDimensions,
+	      const pistis::exceptions::ExceptionOrigin& origin
+	  ) const {
+	    const size_t n = this->self().dimensions().size();
+	    const DimensionListType targetDimensions =
+	        this->self().dimensions().remove(n - 2);
+	    
+	    if (targetDimensions != resultDimensions) {
 	      std::ostringstream msg;
 	      msg << name << " has incorrect dimensions " << resultDimensions
 		  << " -- it should have dimensions " << targetDimensions;

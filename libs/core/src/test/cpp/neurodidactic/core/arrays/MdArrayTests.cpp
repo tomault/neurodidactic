@@ -679,6 +679,100 @@ TEST(MdArrayTests, InnerProductWithVector) {
   EXPECT_EQ(13.5f, result);
 }
 
+TEST(MdArrayTests, TransposeInnerProductWith3DArray) {
+  const std::vector<float> DATA1{
+      -1.00f,  1.50f,  0.50f,  5.00f,
+  };
+  const std::vector<float> DATA2{ 2.0f,  0.5f, -0.5f,  3.0f,
+                                  2.5f,  1.5f, -1.5f, -2.0f,
+                                  4.5f,  2.5f, -3.5f, -1.5f,
+                                  2.0f,  3.0f, -5.0f, -2.0f,
+                                  5.0f, -0.5f,  2.5f,  3.0f,
+                                  1.5f, -1.5f,  3.5f, -4.5f };
+  const std::vector<float> TRUTH{ -9.0f, -5.25f, -33.75, -13.25, 17.0, -18.25 };
+  Float3DArray a({3, 4, 2}, DATA2.begin());
+  FloatVector v({4}, DATA1.begin());
+  FloatMatrix result = a.transposeInnerProduct(v);
+
+  EXPECT_TRUE(verifyArray({3, 4, 2}, DATA2, a));
+  EXPECT_TRUE(verifyArray({4}, DATA1, v));
+  EXPECT_TRUE(verifyArray({3, 2}, TRUTH, result));    
+}
+
+TEST(MdArrayTests, TransposeInnerProductWithMatrix) {
+  const std::vector<float> DATA1{
+      -1.00f,  1.50f,  0.50f,  5.00f,
+  };
+  const std::vector<float> DATA2{ 2.0f, 0.5f, -0.5f,  3.0f,
+                                  2.5f, 1.5f, -1.5f, -2.0f };
+  const std::vector<float> TRUTH{ -9.0f, -5.25f };
+  FloatMatrix a({4, 2}, DATA2.begin());
+  FloatVector v({4}, DATA1.begin());
+  FloatVector result = a.transposeInnerProduct(v);
+
+  EXPECT_TRUE(verifyArray({4, 2}, DATA2, a));
+  EXPECT_TRUE(verifyArray({4}, DATA1, v));
+  EXPECT_TRUE(verifyArray({2}, TRUTH, result));  
+}
+
+TEST(MdArrayTests, TransposeInnerProductWithVector) {
+  const std::vector<float> DATA1{
+      -1.00f,  1.50f,  0.50f,  5.00f,
+  };
+  const std::vector<float> DATA2{ 2.0f, 0.5f, -0.5f, 3.0f };
+  FloatVector a({4}, DATA1.begin());
+  FloatVector v({4}, DATA2.begin());
+  float result = a.transposeInnerProduct(v);
+  
+  EXPECT_TRUE(verifyArray({4}, DATA1, a));
+  EXPECT_TRUE(verifyArray({4}, DATA2, v));
+  EXPECT_EQ(13.5f, result);  
+}
+
+TEST(MdArrayTests, OuterProductWithVector) {
+  const std::vector<float> DATA1{
+      -1.00f,  1.50f,  0.50f,  5.00f,
+  };
+  const std::vector<float> DATA2{ 2.0f, 0.5f, -0.5f };
+  const std::vector<float> TRUTH{
+    -2.00f, -0.5f,  0.50f,
+     3.00f,  0.75, -0.75f,
+     1.00f, 0.25f, -0.25f,
+    10.00f, 2.50f, -2.50f
+  };
+  FloatVector a({4}, DATA1.begin());
+  FloatVector v({3}, DATA2.begin());
+  FloatMatrix result = a.outerProduct(v);
+
+  EXPECT_TRUE(verifyArray({4}, DATA1, a));
+  EXPECT_TRUE(verifyArray({3}, DATA2, v));
+  EXPECT_TRUE(verifyArray({4, 3}, TRUTH, result));
+}
+
+TEST(MdArrayTests, OuterProductWithMatrix) {
+  const std::vector<float> DATA1{
+      -1.00f,  1.50f,  0.50f,  5.00f,
+  };
+  const std::vector<float> DATA2{ 2.0f, 0.5f, -0.5f, -1.0f, 1.5f, 3.0f };
+  const std::vector<float> TRUTH{
+    -2.00f, -0.50f,  0.50f,
+     3.00f,  0.75f, -0.75f,
+     1.00f,  0.25f, -0.25f,
+    10.00f,  2.50f, -2.50f,
+     1.00f, -1.50f, -3.00f,
+    -1.50f,  2.25f,  4.50f,
+    -0.50f,  0.75f,  1.50f,
+    -5.00f,  7.50f, 15.00f
+  };
+  FloatVector a({4}, DATA1.begin());
+  FloatMatrix v({2, 3}, DATA2.begin());
+  Float3DArray result = a.outerProduct(v);
+
+  EXPECT_TRUE(verifyArray({4}, DATA1, a));
+  EXPECT_TRUE(verifyArray({2, 3}, DATA2, v));
+  EXPECT_TRUE(verifyArray({2, 4, 3}, TRUTH, result));
+}
+
 TEST(MdArrayTests, MatrixProductWith3DArray) {
   const std::vector<float> DATA1{
       -1.00f,  1.50f,  0.50f,  5.00f,  4.50f, -2.00f,
@@ -745,4 +839,28 @@ TEST(MdArrayTests, Slice) {
       }
     }
   }
+}
+
+TEST(MdArrayTests, Ref) {
+  const std::vector<float> DATA{
+      -1.00f,  1.50f,  0.50f,  5.00f,  4.50f, -2.00f,
+       1.00f, -4.00f, -1.50f,  0.25f,  1.75f, -1.75f,
+       2.00f, -3.00f,  3.50f,  8.50f, -7.00f,  2.75f,
+      -5.00f, -5.25f,  1.25f,  4.25f,  7.00f,  6.00f
+  };
+  TestAllocator allocator("TEST_1");
+  TestFloat3DArray a({3, 2, 4}, DATA.begin(), allocator);
+  TestFloat3DArray::RefType r = a.ref();
+
+  for (size_t i = 0; i < a.dimensions()[0]; ++i) {
+    for (size_t j = 0; j < a.dimensions()[1]; ++j) {
+      for (size_t k = 0; k < a.dimensions()[2]; ++k) {
+  	size_t o = ((i * a.dimensions()[1] + j) * a.dimensions()[2]) + k;
+  	EXPECT_EQ(DATA[o], a[i][j][k]);
+      }
+    }
+  }
+
+  EXPECT_EQ(a.data(), r.data());
+  EXPECT_EQ(a.end(), r.end());
 }

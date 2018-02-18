@@ -1,10 +1,9 @@
-#ifndef __NEURODIDACTIC__CORE__ARRAYS__MDARRAY_HPP__
-#define __NEURODIDACTIC__CORE__ARRAYS__MDARRAY_HPP__
+#ifndef __NEURODIDACTIC__CORE__ARRAYS__MDARRAYREF_HPP__
+#define __NEURODIDACTIC__CORE__ARRAYS__MDARRAYREF_HPP__
 
 #include <neurodidactic/core/arrays/DimensionList.hpp>
 #include <neurodidactic/core/arrays/MklAllocator.hpp>
 #include <neurodidactic/core/arrays/MdArraySlice.hpp>
-#include <neurodidactic/core/arrays/MdArrayRef.hpp>
 #include <neurodidactic/core/arrays/detail/ArrayDataPtr.hpp>
 #include <neurodidactic/core/arrays/detail/MdArrayBase.hpp>
 #include <neurodidactic/core/arrays/detail/MdArrayProperties.hpp>
@@ -15,40 +14,43 @@
 namespace neurodidactic {
   namespace core {
     namespace arrays {
+
       template <size_t ARRAY_ORDER, typename Field, typename Allocator>
       class MdArray;
-      
+
+      template <typename Field, typename Allocator>
+      class AnyMdArrayRef;
+
       template <size_t ARRAY_ORDER, typename Field,
 		typename Allocator = MklAllocator<Field, 64> >
-      class MdArray :
+      class MdArrayRef :
 	  public detail::MdArrayBase<
-	      MdArray<ARRAY_ORDER, Field, Allocator>,
+	      MdArrayRef<ARRAY_ORDER, Field, Allocator>,
 	      MdArray<ARRAY_ORDER, Field, Allocator>,
 	      typename detail::MdArraySliceType<
 	          ARRAY_ORDER, Field, Allocator
 	      >::type,
 	      typename detail::MdArrayInnerProductType<
-		  ARRAY_ORDER, Field, Allocator
+	          ARRAY_ORDER, Field, Allocator
 	      >::type,
 	      ARRAY_ORDER, Field, Allocator
 	  >
       {
       public:
 	typedef MdArray<ARRAY_ORDER, Field, Allocator> ArrayType;
+	
 	typedef typename detail::MdArraySliceType<
 	            ARRAY_ORDER, Field, Allocator
 	        >::type SliceType;
 
 	typedef MdArrayRef<ARRAY_ORDER, Field, Allocator> RefType;
-	
+
 	typedef typename detail::MdArrayInnerProductType<
-		    ARRAY_ORDER, Field, Allocator
-	        >::type
-	        InnerProductType;
-	typedef MdArray<ARRAY_ORDER + 1, Field, Allocator> OuterProductType;
-	
+	            ARRAY_ORDER, Field, Allocator
+	        >::type InnerProductType;
+
       protected:
-	typedef detail::MdArrayBase<MdArray<ARRAY_ORDER, Field, Allocator>,
+	typedef detail::MdArrayBase<MdArrayRef<ARRAY_ORDER, Field, Allocator>,
 				    MdArray<ARRAY_ORDER, Field, Allocator>,
 				    SliceType, InnerProductType,
 				    ARRAY_ORDER, Field, Allocator>
@@ -58,87 +60,45 @@ namespace neurodidactic {
       public:
 	typedef MdArray<ARRAY_ORDER, Field, Allocator> ThisType;
 	typedef typename BaseType::AllocatorType AllocatorType;
-	typedef typename BaseType::DimensionListType DimensionListType;	
-	
+	typedef typename BaseType::DimensionListType DimensionListType;
+
       public:
-	MdArray(const DimensionListType& dimensions,
-		const AllocatorType& allocator = AllocatorType()):
-	    p_(DataPtr::newData(DimensionListType(dimensions), allocator)) {
-	}
+	MdArrayRef(const DataPtr& base) : p_(base) { }
+	MdArrayRef(const MdArrayRef&) = default;
+	MdArrayRef(MdArrayRef&&) = default;
 
-	MdArray(const DimensionListType& dimensions, Field value,
-		const AllocatorType& allocator = AllocatorType()):
-	    p_(DataPtr::newData(DimensionListType(dimensions), allocator)) {
-	  std::fill(p_->data(), p_->end(), value);
-	}
+	RefType ref() const { return *this; }
 	
-	template <typename Iterator,
-		  typename Enabler =
-		      typename std::enable_if<
-		          !std::is_arithmetic<Iterator>::value,
-		          int
-		      >::type>
-	MdArray(const DimensionListType& dimensions, Iterator arrayData,
-		const AllocatorType& allocator = AllocatorType(),
-		Enabler = 0):
-	    p_(DataPtr::newData(DimensionListType(dimensions), allocator)) {
-	  std::copy_n(arrayData, p_->size(), p_->data());
-	}
+	MdArrayRef& operator=(const MdArrayRef&) = default;
+	MdArrayRef& operator=(MdArrayRef&&) = default;
 
-	MdArray(const DimensionListType& dimensions,
-		const std::initializer_list<Field>& arrayData,
-		const AllocatorType& allocator = AllocatorType()):
-	    p_(DataPtr::newData(DimensionListType(dimensions), allocator)) {
-	  std::copy(arrayData.begin(), arrayData.end(), p_->data());
-	}
-
-	MdArray(const MdArray& other):
-	    p_(DataPtr::newData(DimensionListType(other.dimensions()),
-				other.allocator())) {
-	  std::copy(other.begin(), other.end(), p_->data());
-	}
-
-	MdArray(MdArray&& other) = default;
-
-	template <typename OtherArray,
-		  typename Enabler =
-		      typename std::enable_if<
-		          IsMdArray<OtherArray>::value &&
-		              (OtherArray::ORDER == ARRAY_ORDER),
-			  int
-		      >::type
-		 >
-	explicit MdArray(const OtherArray& other, Enabler = 0):
-	    p_(DataPtr::newData(DimensionListType(other.dimensions()),
-				other.allocator())) {
-	  std::copy(other.begin(), other.end(), p_->data());
-	}
-
-	RefType ref() const { return RefType(p_); }
-	
-	MdArray& operator=(const MdArray& other) {
-	  if (p_ != other.p_) {
-	    p_ = DataPtr::newData(DimensionListType(other.dimensions()),
-				  other.allocator());
-	    std::copy(other.begin(), other.end(), p_->data());
+	MdArrayRef& operator=(
+	    const MdArray<ARRAY_ORDER, Field, Allocator>& other
+	) {
+	  if (p_ == other.p_) {
+	    // Do nothing
+	  } else if (other.dimensions() == this->dimensions()) {
+	    std::copy(other.data(), other.end(), this->data());
+	  } else {
+	    signalAssignmentFromArrayOfIncorrectDimension_(other);
 	  }
 	  return *this;
 	}
 	
-	MdArray& operator=(MdArray&&) = default;
-	
 	template <typename OtherArray,
 		  typename Enabler =
 		      typename std::enable_if<
 		          IsMdArray<OtherArray>::value &&
-		              (OtherArray::ORDER == ARRAY_ORDER),
-			  MdArray
+		              OtherArray::ORDER == ARRAY_ORDER,
+		          MdArrayRef
 		      >::type
 		 >
-	Enabler& operator=(const OtherArray& other) {
-	  p_ = DataPtr::newData(DimensionListType(other.dimensions()),
-				this->allocator());
-	  std::copy(other.begin(), other.end(), p_->data());
+	MdArrayRef& operator=(const OtherArray& other) {
+	  if (other.dimensions() == this->dimensions()) {
+	    std::copy(other.data(), other.end(), this->data());
+	  } else {
+	    signalAssignmentFromArrayOfIncorrectDimension_(other);
+	  }
 	  return *this;
 	}
 
@@ -181,27 +141,39 @@ namespace neurodidactic {
 			   p_->data() + n * p_->leadingDimension());
 	}
 
+	template <typename OtherField, typename OtherAllocator>
+	[[noreturn]] void signalAssignmentFromArrayOfIncorrectDimension_(
+	    const MdArray<ARRAY_ORDER, OtherField, OtherAllocator>& other
+	) {
+	  std::ostringstream msg;
+	  msg << "Array \"other\" has incorrect dimensions "
+	      << other.dimensions() << " -- it should have dimensions "
+	      << this->dimensions() << ".  Assignment of an MdArray to "
+	      << "an MdArrayRef cannot change the shape of the underlying "
+	      << "array.";
+	  throw pistis::exceptions::IllegalValueError(msg.str(),
+						      PISTIS_EX_HERE);
+	}
+	
       private:
 	DataPtr p_;
 
 	friend class detail::MdArrayCommon<
-	    MdArray<ARRAY_ORDER, Field, Allocator>,
+	    MdArrayRef<ARRAY_ORDER, Field, Allocator>,
 	    MdArray<ARRAY_ORDER, Field, Allocator>,
 	    SliceType, InnerProductType,
 	    ARRAY_ORDER, Field, Allocator
 	>;
 	friend class detail::MdArrayBase<
-	    MdArray<ARRAY_ORDER, Field, Allocator>,
+	    MdArrayRef<ARRAY_ORDER, Field, Allocator>,
 	    MdArray<ARRAY_ORDER, Field, Allocator>,
 	    SliceType, InnerProductType,
 	    ARRAY_ORDER, Field, Allocator
 	>;
 
-	friend class MdArrayRef<ARRAY_ORDER, Field, Allocator>;
+	friend class AnyMdArrayRef<Field, Allocator>;
       };
-      
     }
   }
 }
 #endif
-

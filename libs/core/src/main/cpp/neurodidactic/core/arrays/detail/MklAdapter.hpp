@@ -1,6 +1,9 @@
 #ifndef __NEURODIDACTIC__CORE__ARRAYS__DETAIL__MKLADAPTER_HPP__
 #define __NEURODIDACTIC__CORE__ARRAYS__DETAIL__MKLADAPTER_HPP__
 
+#include <stddef.h>
+#include <mkl.h>
+
 namespace neurodidactic {
   namespace core {
     namespace arrays {
@@ -38,6 +41,10 @@ namespace neurodidactic {
 	    cblas_sscal(n, c, x, 1);
 	  }
 
+	  static void scale(size_t n, float c, const float* x, float* y) {
+	    cblas_saxpby(n, c, x, 1, 0.0, y, 1);
+	  }
+
 	  static void scaleAndAdd(size_t n, float c, const float* x,
 				  float* y) {
 	    cblas_saxpy(n, c, x, 1, y, 1);
@@ -48,8 +55,21 @@ namespace neurodidactic {
 	    cblas_saxpby(n, c1, x, 1, c2, y, 1);
 	  }
 
+	  static void exp(size_t n, const float* x, float* y) {
+	    vsExp(n, x, y);
+	  }
+
 	  static float innerProduct(size_t n, const float* x, const float* y) {
 	    return cblas_sdot(n, x, 1, y, 1);
+	  }
+
+	  static void outerProduct(size_t m, size_t n, const float* x,
+				   const float* v, float* y) {
+	    float* p = y;
+	    for (size_t i = 0; i < m; ++i) {
+	      cblas_saxpby(n, x[i], v, 1, 0.0f, p, 1);
+	      p += n;
+	    }
 	  }
 	  
 	  static void multiplyMatrixByVector(size_t m, size_t n,
