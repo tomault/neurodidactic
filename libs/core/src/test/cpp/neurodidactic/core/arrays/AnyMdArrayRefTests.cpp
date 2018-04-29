@@ -19,7 +19,8 @@ TEST(AnyMdArrayRefTests, Create) {
   FloatVector::RefType ref = v.ref();
   AnyMdArrayRef<float, FloatVector::AllocatorType> any(ref);
 
-  FloatVector::RefType recovered = any.get<1>();
+  FloatVector::RefType recovered = any.cast<1>();
+  EXPECT_TRUE(recovered.refersTo(v));
   EXPECT_EQ(dimensions, recovered.dimensions());
   EXPECT_EQ(startOfData, recovered.data());
   EXPECT_EQ(endOfData, recovered.end());
@@ -30,7 +31,7 @@ TEST(AnyMdArrayRefTests, GetWithWrongOrder) {
   const FloatVector v({3}, DATA.begin());
   AnyMdArrayRef<float, FloatVector::AllocatorType> any(v.ref());
 
-  EXPECT_THROW(any.get<2>(), ex::IllegalValueError);
+  EXPECT_THROW(any.cast<2>(), ex::IllegalValueError);
 }
 
 TEST(AnyMdArrayRefTests, EqualityAndInequality) {

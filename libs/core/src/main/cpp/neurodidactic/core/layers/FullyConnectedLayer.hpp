@@ -1,7 +1,7 @@
 #ifndef __NEURODIDACTIC__CORE__LAYERS__FULLYCONNECTED_HPP__
 #define __NEURODIDACTIC__CORE__LAYERS__FULLYCONNECTED_HPP__
 
-#include <neurodidactic/arrays/MdArray.hpp>
+#include <neurodidactic/core/arrays/MdArray.hpp>
 
 namespace neurodidactic {
   namespace core {
@@ -30,16 +30,16 @@ namespace neurodidactic {
 			    const WeightMatrixType& weights,
 			    const BiasVectorType& bias,
 			    const Nonlinearity& nonlinearity = Nonlinearity(),
-			    const Allocator& allocator = Allocator()) :
-	    id_(id), weights_(weights), bias(bias_), f_(nonlinearity) {
+			    const Allocator& allocator = Allocator()):
+	    id_(id), weights_(weights.dimensions(), weights.data(), allocator),
+	    bias_(bias.dimensions(), bias.data(), allocator), f_(nonlinearity) {
 	  // TODO: Check dimensions of weights and bias
 	}
 
 	FullyConnectedLayer(uint32_t id,
 			    WeightMatrixType&& weights,
 			    BiasVectorType&& bias,
-			    const Nonlinearity& nonlinearity = Nonlinearity(),
-			    const Allocator& allocator = Allocator()) :
+			    const Nonlinearity& nonlinearity = Nonlinearity()):
 	    id_(id), weights_(std::move(weights)), bias(std::move(bias_)),
 	    f_(nonlinearity) {
 	  // TODO: Check dimensions of weights and bias
@@ -76,8 +76,8 @@ namespace neurodidactic {
 	InputType lossGradient(const OutputType& lossGradient,
 			       const ForwardState& forwardState) const {
 	  return weights._transposeInnerProduct(
-	      f_.gradient(forwardState.activations<1>(id()))
-	        .multiplyInPlace(lossGradient);
+	      f_.gradient(forwardState.activations(id()).cast<1>())
+	        .multiplyInPlace(lossGradient)
 	  );
 	}
 
@@ -86,15 +86,15 @@ namespace neurodidactic {
 	    const OutputType& lossGradient,
 	    const ForwardState& forwardState
 	) const {
-	  return f_.gradient(forwardState.activations<1>(id()))
+	  return f_.gradient(forwardState.activations(id()).cast<1>())
 	           .multiplyInPlace(lossGradient)
-	           .outerProduct(forwardState.inputs<1>(id()));
+	           .outerProduct(forwardState.inputs(id()).cast<1>());
 	}
 
 	template <typename ForwardState>
 	BiasVectorType biasGradient(const OutputType& lossGradient,
 				    const ForwardState& forwardState) {
-	  return f_.gradient(forwardState.activations<1>(id()))
+	  return f_.gradient(forwardState.activations(id()).cast<1>())
 	           .multiplyInPlace(lossGradient);
 	}
 
@@ -102,12 +102,17 @@ namespace neurodidactic {
 	InputType backward(const OutputType& lossGradient,
 			   const ForwardState& forwardState,
 			   Optimizer& optimizer) {
-	  auto weightedLoss = f_.gradient(forwardState.activations<1>(id()))
-	                        .multiplyInPlace(lossGradient);
-	  optimizer.update(
-	      weights_, weightedLoss.outerProduct(forwardState.inputs<1>(id()))
+	  static const uint32_t WEIGHTS = 0;
+	  static const uint32_t BIAS = 1;
+	  
+	  auto weightedLoss =
+	      f_.gradient(forwardState.activations(id()).cast<1>())
+	        .multiplyInPlace(lossGradient);
+	  optimizer.update(id(), WEIGHTS,
+	      weights_,
+	      weightedLoss.outerProduct(forwardState.inputs(id()).cast<1>())
 	  );
-	  optimizer.update(bias_, weightedLoss);
+	  optimizer.update(id(), BIAS, bias_, weightedLoss);
 	  return weights_.transposeInnerProduct(weightedLoss);
 	}
 
@@ -116,7 +121,7 @@ namespace neurodidactic {
 	
       private:
 	uint32_t id_;
-	WeightVectorType weights_;
+	WeightMatrixType weights_;
 	BiasVectorType bias_;
 	Nonlinearity f_;
       };

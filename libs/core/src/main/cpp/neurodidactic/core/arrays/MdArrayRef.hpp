@@ -68,6 +68,9 @@ namespace neurodidactic {
 	MdArrayRef(MdArrayRef&&) = default;
 
 	RefType ref() const { return *this; }
+	bool refersTo(const ArrayType& array) const {
+	  return p_ == array.p_;
+	}
 	
 	MdArrayRef& operator=(const MdArrayRef&) = default;
 	MdArrayRef& operator=(MdArrayRef&&) = default;

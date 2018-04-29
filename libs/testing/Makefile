@@ -47,7 +47,7 @@ export THIRD_PARTY_LIBS= -lmkl_intel_lp64 -lmkl_gnu_thread -lmkl_core -lgomp -lp
 # bug fixes and new features should go into the next release.
 export VERSION= 0.1.1
 export SOVERSION= 0.1
-export LIBRARY_NAME= neurodidactic_core
+export LIBRARY_NAME= neurodidactic_testing
 export LIBRARY= lib${LIBRARY_NAME}.so.${VERSION}
 export SONAME= lib${LIBRARY_NAME}.so.${SOVERSION}
 

@@ -3,32 +3,34 @@
 
 #include <neurodidactic/core/arrays/AnyMdArray.hpp>
 #include <neurodidactic/core/arrays/AnyMdArrayRef.hpp>
+#include <pistis/exceptions/NoSuchItem.hpp>
 #include <algorithm>
 #include <iterator>
 #include <unordered_map>
+#include <utility>
 
 namespace neurodidactic {
   namespace core {
-    namespace optimization {
+    namespace optimizers {
 
       template <typename Field, typename Allocator>
       class ForwardStateMap {
       public:
-	typedef AnyMdArrayRef<Field, Allocator> ArrayRefType;
+	typedef arrays::AnyMdArrayRef<Field, Allocator> ArrayRefType;
 	
       public:
-	ForwardStateMap(): inputs_(), activations_() { }
+	ForwardStateMap(): inputMap_(), activationMap_() { }
 	ForwardStateMap(const ForwardStateMap&) = default;
 	ForwardStateMap(ForwardStateMap&&) = default;
 
-	size_t numInputs() const { return inputs_.size(); }
-	size_t numActivations() const { return activations_.size(); }
+	size_t numInputs() const { return inputMap_.size(); }
+	size_t numActivations() const { return activationMap_.size(); }
 	std::vector<size_t> inputIds() const {
-	  return extractIds_(inputs_);
+	  return extractIds_(inputMap_);
 	}
 	
 	std::vector<size_t> activationIds() const {
-	  return extractIds_(activations_);
+	  return extractIds_(activationMap_);
 	}
 	
 	const ArrayRefType& inputs(size_t id) const {
@@ -41,13 +43,13 @@ namespace neurodidactic {
 	
 	template <typename Array>
 	void setInputs(size_t id, const arrays::AnyMdArray<Array>& inputs) {
-	  inputMap_.insert(std::make_pair(id, inputs.self().ref()));	  
+	  set_(inputMap_, id, inputs.self().ref());
 	}
 
 	template <typename Array>
 	void setActivations(size_t id,
 			    const arrays::AnyMdArray<Array>& activations) {
-	  activationMap_.insert(std::make_pair(id, activations.self().ref()));
+	  set_(activationMap_, id, activations.self().ref());
 	}
 
 	void reset() {
@@ -65,7 +67,8 @@ namespace neurodidactic {
 	IdToArrayMap inputMap_;
 	IdToArrayMap activationMap_;
 
-	static ArrayRefType retrieve_(const IdToArrayMap& data, size_t id) {
+	static const ArrayRefType& retrieve_(const IdToArrayMap& data,
+					     size_t id) {
 	  auto i = data.find(id);
 	  if (i == data.end()) {
 	    std::ostringstream msg;
@@ -75,14 +78,26 @@ namespace neurodidactic {
 	  return i->second;
 	}
 
+	template <typename RefType>
+	static void set_(IdToArrayMap& data, size_t id,
+			 const RefType& ref) {
+	  auto i = data.find(id);
+	  if (i != data.end()) {
+	    i->second = ArrayRefType(ref);
+	  } else {
+	    data.insert(std::make_pair(id, ArrayRefType(ref)));
+	  }
+	}
+
 	static std::vector<size_t> extractIds_(const IdToArrayMap& data) {
 	  std::vector<size_t> ids;
 
 	  ids.reserve(data.size());
 	  std::transform(data.begin(), data.end(), std::back_inserter(ids),
-			 [](const IdToArrayMap::value_type& x) {
+			 [](const typename IdToArrayMap::value_type& x) {
 			     return x.first;
 			 });
+	  return ids;
 	}
 	
       };

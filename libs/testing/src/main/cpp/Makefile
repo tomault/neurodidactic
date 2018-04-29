@@ -72,10 +72,10 @@ compile: dirs ${OBJ_FILES}
 link: compile ${TARGET_DIR}/lib/${LIBRARY}
 
 install:
-	-[[ -d ${NEURO_INC_DIR}/neurodidactic/core ]] && rm -rf ${NEURO_INC_DIR}/ineurodidactic/core
-	for d in ${SRC_DIRS}; do ([[ -d ${NEURO_INC_DIR}/$${d} ]] || mkdir -p ${NEURO_INC_DIR}/$${d}); cp $${d}/*.hpp ${NEURO_INC_DIR}/$${d}/.; done
-	cp ${TARGET_DIR}/lib/${LIBRARY} ${NEURO_LIB_DIR}/.
-	cd ${NEURO_LIB_DIR} && ln -sf ${LIBRARY} ${SONAME} && ln -sf ${LIBRARY} lib${LIBRARY_NAME}.so
+	-[[ -d ${NEURO_INC_DIR}/neurodidactic/testing ]] && rm -rf ${NEURO_INC_DIR}/neurodidactic/testing
+	for d in ${SRC_DIRS}; do ([[ -d ${NEURO_REPO_DIR}/include/$${d} ]] || mkdir -p ${NEURO_REPO_DIR}/include/$${d}); cp $${d}/*.hpp ${NEURO_REPO_DIR}/include/$${d}/.; done
+#	cp ${TARGET_DIR}/lib/${LIBRARY} ${NEURO_LIB_DIR}/.
+#	cd ${NEURO_LIB_DIR} && ln -sf ${LIBRARY} ${SONAME} && ln -sf ${LIBRARY} lib${LIBRARY_NAME}.so
 
 clean:
 	-rm -rf ${TARGET_DIR}/obj

@@ -26,7 +26,7 @@ namespace neurodidactic {
 	AnyMdArrayRef(AnyMdArrayRef&&) = default;
 
 	template <size_t ARRAY_ORDER>
-	MdArrayRef<ARRAY_ORDER, Field, Allocator> get() const {
+	MdArrayRef<ARRAY_ORDER, Field, Allocator> cast() const {
 	  if (p_->dimensions().size() != ARRAY_ORDER) {
 	    std::ostringstream msg;
 	    msg << "Cannot convert an MdArrayRef of order "
@@ -44,10 +44,11 @@ namespace neurodidactic {
 	bool operator==(const AnyMdArrayRef& other) const {
 	  return p_ == other.p_;
 	}
+
 	bool operator!=(const AnyMdArrayRef& other) const {
 	  return p_ != other.p_;
 	}
-	
+
       private:
 	DataPtr p_;
       };
