@@ -17,7 +17,7 @@ export REPO_LIB_DIR ?= ${REPO_DIR}/lib
 export REPO_BIN_DIR ?= ${REPO_DIR}/bin
 
 # Location of MKL
-export MKL_ROOT ?= /opt/intel/parallel_studio_xe_2018/compilers_and_libraries_2018/linux/mkl
+export MKL_ROOT ?= /opt/intel/parallel_studio_xe_2019/compilers_and_libraries_2019/linux/mkl
 
 # Neurodidactic repository location
 export NEURODIDACTIC_REPO_DIR = ../../target

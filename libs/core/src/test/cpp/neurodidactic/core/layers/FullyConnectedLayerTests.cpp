@@ -3,11 +3,11 @@
 #include <neurodidactic/core/layers/Nonlinearities.hpp>
 #include <neurodidactic/core/layers/FullyConnectedLayer.hpp>
 
-#include <neurodidactic/core/arrays/MdArrays.hpp>
+#include <neurodidactic/core/arrays/MdArray.hpp>
 #include <neurodidactic/core/layers/Nonlinearities.hpp>
-#include <neurodidactic/core/optimiziers/ForwardStateMap.hpp>
+#include <neurodidactic/core/optimizers/ForwardStateMap.hpp>
 
-#include <pistis/testing/Allocators.hpp>
+#include <pistis/testing/Allocator.hpp>
 #include <neurodidactic/testing/MdArrayVerification.hpp>
 #include <gtest/gtest.h>
 

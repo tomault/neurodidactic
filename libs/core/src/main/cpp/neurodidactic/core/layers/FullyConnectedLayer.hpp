@@ -108,8 +108,7 @@ namespace neurodidactic {
 	  auto weightedLoss =
 	      f_.gradient(forwardState.activations(id()).cast<1>())
 	        .multiplyInPlace(lossGradient);
-	  optimizer.update(id(), WEIGHTS,
-	      weights_,
+	  optimizer.update(id(), WEIGHTS, weights_,
 	      weightedLoss.outerProduct(forwardState.inputs(id()).cast<1>())
 	  );
 	  optimizer.update(id(), BIAS, bias_, weightedLoss);
